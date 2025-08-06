@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FixEd - School Reporting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            width: 250px;
+            padding: 12px;
+            margin: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .admin-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .admin-btn:hover {
+            background-color: #1976D2;
+        }
+        
+        .exit-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .exit-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        .form-container {
+            display: none;
+            text-align: left;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .form-buttons {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .form-buttons button {
+            width: 120px;
+            margin: 0 10px;
+        }
+        
+        .back-btn {
+            background-color: #757575;
+            color: white;
+        }
+        
+        .back-btn:hover {
+            background-color: #616161;
+        }
+        
+        .reports-display {
+            max-height: 400px;
+            overflow-y: auto;
+            text-align: left;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .report-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .report-field {
+            margin-bottom: 8px;
+        }
+        
+        .report-field strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Menu -->
+        <div id="mainMenu">
+            <h1>Welcome to FixEd!</h1>
+            <p>What can we do for you today?</p>
+            <button class="submit-btn" onclick="showReportForm()">Submit a Report</button>
+            <button class="admin-btn" onclick="showAdminPanel()">Admin Panel</button>
+            <button class="exit-btn" onclick="exitApp()">Exit</button>
+        </div>
+
+        <!-- Report Form -->
+        <div id="reportForm" class="form-container">
+            <h2>Submit a Report</h2>
+            <form id="reportFormData">
+                <div class="form-group">
+                    <label for="name">Name (or type 'anonymous'):</label>
+                    <input type="text" id="name" placeholder="Enter your name or 'anonymous'">
+                </div>
+                
+                <div class="form-group">
+                    <label for="grade">Grade:</label>
+                    <input type="text" id="grade" placeholder="What grade are you in?" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" placeholder="Where did this happen? (e.g., Cafeteria, Hallway)" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="issueType">Issue Type:</label>
+                    <input type="text" id="issueType" placeholder="What type of issue are you reporting?" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" placeholder="Please describe what happened in detail" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="peopleInvolved">People Involved:</label>
+                    <input type="text" id="peopleInvolved" placeholder="List any names or details of people involved">
+                </div>
+                
+                <div class="form-group">
+                    <label for="when">When (optional):</label>
+                    <input type="text" id="when" placeholder="When did this happen?">
+                </div>
+                
+                <div class="form-group">
+                    <label for="severity">Severity:</label>
+                    <select id="severity" required>
+                        <option value="">Select severity level</option>
+                        <option value="Minor">Minor</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Major">Major</option>
+                    </select>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="submit" class="submit-btn">Submit Report</button>
+                    <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="form-container">
+            <h2>Admin Panel</h2>
+            <div class="form-group">
+                <label for="adminPassword">Password:</label>
+                <input type="password" id="adminPassword" placeholder="Enter admin password">
+            </div>
+            <div class="form-buttons">
+                <button class="admin-btn" onclick="viewReports()">View Reports</button>
+                <button class="back-btn" onclick="showMainMenu()">Back</button>
+            </div>
+            
+            <div id="reportsDisplay" class="reports-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASS = "@#Lets.Fix.Schools";
+        let reports = [];
+
+        // Load reports from localStorage (browser equivalent of file storage)
+        function loadReports() {
+            const stored = localStorage.getItem('fixedReports');
+            if (stored) {
+                reports = JSON.parse(stored);
+            }
+        }
+
+        // Save reports to localStorage
+        function saveReports() {
+            localStorage.setItem('fixedReports', JSON.stringify(reports));
+        }
+
+        // Initialize app
+        function init() {
+            loadReports();
+        }
+
+        // Navigation functions
+        function showMainMenu() {
+            document.getElementById('mainMenu').style.display = 'block';
+            document.getElementById('reportForm').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('reportsDisplay').style.display = 'none';
+        }
+
+        function showReportForm() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('reportForm').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        function showAdminPanel() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('reportForm').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('reportsDisplay').style.display = 'none';
+        }
+
+        function exitApp() {
+            if (confirm('Are you sure you want to exit FixEd?')) {
+                window.close();
+                // If window.close() doesn't work (modern browsers block it), show a message
+                setTimeout(() => {
+                    alert('Please close this tab to exit the application.');
+                }, 100);
+            }
+        }
+
+        // Report submission
+        document.getElementById('reportFormData').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const report = {
+                Name: document.getElementById('name').value || 'anonymous',
+                Grade: document.getElementById('grade').value,
+                Location: document.getElementById('location').value,
+                'Issue Type': document.getElementById('issueType').value,
+                Description: document.getElementById('description').value,
+                'People Involved': document.getElementById('peopleInvolved').value,
+                When: document.getElementById('when').value,
+                Severity: document.getElementById('severity').value,
+                Timestamp: new Date().toLocaleString()
+            };
+
+            reports.push(report);
+            saveReports();
+
+            alert('Your report has been saved. Your voice matters!');
+            
+            // Clear form
+            document.getElementById('reportFormData').reset();
+            showMainMenu();
+        });
+
+        // Admin functions
+        function viewReports() {
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password !== ADMIN_PASS) {
+                alert('Incorrect password!');
+                return;
+            }
+
+            const reportsDisplay = document.getElementById('reportsDisplay');
+            
+            if (reports.length === 0) {
+                reportsDisplay.innerHTML = '<p>No reports found.</p>';
+            } else {
+                let html = '<h3>All Reports:</h3>';
+                reports.forEach((report, index) => {
+                    html += `<div class="report-item">`;
+                    html += `<h4>Report #${index + 1}</h4>`;
+                    for (const [key, value] of Object.entries(report)) {
+                        if (value) {
+                            html += `<div class="report-field"><strong>${key}:</strong> ${value}</div>`;
+                        }
+                    }
+                    html += `</div>`;
+                });
+                reportsDisplay.innerHTML = html;
+            }
+            
+            reportsDisplay.style.display = 'block';
+        }
+
+        // Initialize the app when page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
