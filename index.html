@@ -158,47 +158,34 @@
             background-color: #c82333;
         }
 
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .status-message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
         .admin-form {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: opacity 0.3s ease;
+        }
+
+        .notification.success {
+            background-color: #28a745;
+        }
+
+        .notification.error {
+            background-color: #dc3545;
+        }
+
     </style>
 </head>
 <body>
@@ -263,7 +250,7 @@
                 </div>
                 
                 <div class="form-buttons">
-                    <button type="submit" class="submit-btn" id="submitBtn">Submit Report</button>
+                    <button type="submit" class="submit-btn">Submit Report</button>
                     <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
                 </div>
             </form>
@@ -278,7 +265,7 @@
                     <input type="password" id="adminPassword" placeholder="Enter admin password" required>
                 </div>
                 <div class="form-buttons">
-                    <button type="submit" class="admin-btn" id="viewReportsBtn">View Reports</button>
+                    <button type="submit" class="admin-btn">View Reports</button>
                     <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
                 </div>
             </form>
@@ -288,47 +275,46 @@
     </div>
 
     <script>
-        // Pure localStorage system - no API calls, no errors
+        // ZERO API CALLS - PURE LOCAL STORAGE ONLY
+        const ADMIN_PASS = "@#Lets.Fix.Schools";
         let reports = [];
 
-        // Simple local storage functions
+        // Pure localStorage functions - NO network calls
         function loadReports() {
-            reports = JSON.parse(localStorage.getItem('schoolReports') || '[]');
-        }
-
-        function saveReports() {
-            localStorage.setItem('schoolReports', JSON.stringify(reports));
-            localStorage.setItem('lastUpdate', new Date().toLocaleString());
-        }
-
-        // Show loading state
-        function showLoading(buttonId, text = 'Loading...') {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.innerHTML = '<div class="loading"></div>' + text;
-                button.disabled = true;
+            try {
+                const stored = localStorage.getItem('fixedReports');
+                reports = stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                console.log('Loading fresh reports array');
+                reports = [];
             }
         }
 
-        // Hide loading state
-        function hideLoading(buttonId, text) {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.innerHTML = text;
-                button.disabled = false;
+        function saveReports() {
+            try {
+                localStorage.setItem('fixedReports', JSON.stringify(reports));
+                localStorage.setItem('lastUpdate', new Date().toLocaleString());
+            } catch (error) {
+                console.log('Storage full - please delete some reports');
             }
         }
 
         // Show notification
         function showNotification(message, type = 'success') {
+            // Remove any existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) {
+                existing.remove();
+            }
+
             const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
             notification.textContent = message;
-            const color = type === 'success' ? '#28a745' : '#dc3545';
-            notification.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${color}; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);`;
             document.body.appendChild(notification);
+
             setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
+                if (notification.parentNode) {
+                    notification.remove();
                 }
             }, 3000);
         }
@@ -364,11 +350,9 @@
             }
         }
 
-        // Report submission - pure local storage
-        async function submitReport(event) {
+        // Submit report - instant local save
+        function submitReport(event) {
             event.preventDefault();
-            
-            showLoading('submitBtn', 'Saving...');
             
             const report = {
                 Name: document.getElementById('name').value || 'anonymous',
@@ -386,19 +370,16 @@
             reports.push(report);
             saveReports();
             
-            hideLoading('submitBtn', 'Submit Report');
             showNotification('Your report has been saved! Your voice matters!');
             
-            // Clear form
+            // Clear form and go back to main menu
             document.getElementById('reportFormData').reset();
             showMainMenu();
         }
 
-        // Admin view reports - instant local loading
+        // View reports - admin function
         function viewReports(event) {
-            if (event) {
-                event.preventDefault();
-            }
+            event.preventDefault();
             
             const password = document.getElementById('adminPassword').value;
             
@@ -407,19 +388,16 @@
                 return;
             }
 
-            showLoading('viewReportsBtn', 'Loading...');
-            
-            // Load from local storage instantly
+            // Load and display reports instantly
             loadReports();
             displayReports();
-            hideLoading('viewReportsBtn', 'View Reports');
         }
 
         function displayReports() {
             const reportsDisplay = document.getElementById('reportsDisplay');
             
             if (reports.length === 0) {
-                reportsDisplay.innerHTML = '<h3>No Reports Found</h3><p>All reports have been resolved!</p>';
+                reportsDisplay.innerHTML = '<h3>No Reports Found</h3><p>All reports have been resolved! 🎉</p>';
                 reportsDisplay.style.display = 'block';
                 return;
             }
@@ -431,20 +409,20 @@
             for (let i = 0; i < reports.length; i++) {
                 const report = reports[i];
                 html += '<div class="report-item">';
-                html += '<h4>Report #' + (i + 1) + ' - ' + (report.Severity || 'Unknown') + '</h4>';
+                html += `<h4>Report #${i + 1} - ${report.Severity || 'Unknown'}</h4>`;
                 
-                // Display report fields with XSS protection
-                if (report.Name) html += '<div class="report-field"><strong>Name:</strong> ' + escapeHtml(report.Name) + '</div>';
-                if (report.Grade) html += '<div class="report-field"><strong>Grade:</strong> ' + escapeHtml(report.Grade) + '</div>';
-                if (report.Location) html += '<div class="report-field"><strong>Location:</strong> ' + escapeHtml(report.Location) + '</div>';
-                if (report['Issue Type']) html += '<div class="report-field"><strong>Issue Type:</strong> ' + escapeHtml(report['Issue Type']) + '</div>';
-                if (report.Description) html += '<div class="report-field"><strong>Description:</strong> ' + escapeHtml(report.Description) + '</div>';
-                if (report['People Involved']) html += '<div class="report-field"><strong>People Involved:</strong> ' + escapeHtml(report['People Involved']) + '</div>';
-                if (report.When) html += '<div class="report-field"><strong>When:</strong> ' + escapeHtml(report.When) + '</div>';
-                if (report.Timestamp) html += '<div class="report-field"><strong>Submitted:</strong> ' + escapeHtml(report.Timestamp) + '</div>';
+                // Display all report fields safely
+                if (report.Name) html += `<div class="report-field"><strong>Name:</strong> ${escapeHtml(report.Name)}</div>`;
+                if (report.Grade) html += `<div class="report-field"><strong>Grade:</strong> ${escapeHtml(report.Grade)}</div>`;
+                if (report.Location) html += `<div class="report-field"><strong>Location:</strong> ${escapeHtml(report.Location)}</div>`;
+                if (report['Issue Type']) html += `<div class="report-field"><strong>Issue Type:</strong> ${escapeHtml(report['Issue Type'])}</div>`;
+                if (report.Description) html += `<div class="report-field"><strong>Description:</strong> ${escapeHtml(report.Description)}</div>`;
+                if (report['People Involved']) html += `<div class="report-field"><strong>People Involved:</strong> ${escapeHtml(report['People Involved'])}</div>`;
+                if (report.When) html += `<div class="report-field"><strong>When:</strong> ${escapeHtml(report.When)}</div>`;
+                if (report.Timestamp) html += `<div class="report-field"><strong>Submitted:</strong> ${escapeHtml(report.Timestamp)}</div>`;
                 
                 html += '<div class="report-actions">';
-                html += '<button class="delete-btn" onclick="deleteReport(\'' + report.id + '\')">Issue Resolved - Delete Report</button>';
+                html += `<button class="delete-btn" onclick="deleteReport('${report.id}')">Issue Resolved - Delete Report</button>`;
                 html += '</div>';
                 html += '</div>';
             }
@@ -453,7 +431,7 @@
             reportsDisplay.style.display = 'block';
         }
 
-        // Security helper function
+        // Security function to prevent XSS
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -463,22 +441,24 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // Instant delete operation - no API calls
+        // Delete report - instant local operation
         function deleteReport(reportId) {
             if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
-                reports = reports.filter(r => r.id !== reportId);
+                reports = reports.filter(r => r.id != reportId);
                 saveReports();
                 displayReports();
                 showNotification('Report deleted successfully!');
             }
         }
 
-        // Initialize app
-        function init() {
+        // Initialize the app
+        function initApp() {
             loadReports();
+            console.log('FixEd initialized successfully - Local storage only, no API calls');
         }
 
-        window.onload = init;
+        // Start the app when page loads
+        window.onload = initApp;
     </script>
 </body>
 </html>
