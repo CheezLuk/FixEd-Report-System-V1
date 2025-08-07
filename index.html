@@ -288,84 +288,17 @@
     </div>
 
     <script>
-        const ADMIN_PASS = "@#Lets.Fix.Schools";
+        // Pure localStorage system - no API calls, no errors
         let reports = [];
 
-        // Robust local storage system - works 100% offline
-        let cloudStorageEnabled = false;
-        
-        const cloudDB = {
-            async getReports() {
-                // Always use localStorage for reliability
-                const localData = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
-                
-                // Only try cloud if explicitly enabled (you can set this to true later)
-                if (cloudStorageEnabled) {
-                    try {
-                        // Create a new bin automatically if needed
-                        const createResponse = await fetch('https://api.jsonbin.io/v3/b', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Master-Key': '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e'
-                            },
-                            body: JSON.stringify(localData)
-                        });
-                        
-                        if (createResponse.ok) {
-                            const binData = await createResponse.json();
-                            localStorage.setItem('cloudBinId', binData.metadata.id);
-                            console.log('Cloud storage connected successfully');
-                        }
-                    } catch (error) {
-                        console.log('Cloud storage unavailable, using local storage');
-                    }
-                }
-                
-                return localData;
-            },
-            
-            async saveReports(reportsArray) {
-                // Always save to localStorage first for instant reliability
-                localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
-                localStorage.setItem('lastSyncTime', new Date().toISOString());
-                
-                // Cloud sync is optional and won't block the operation
-                if (cloudStorageEnabled) {
-                    try {
-                        const binId = localStorage.getItem('cloudBinId');
-                        if (binId) {
-                            fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-Master-Key': '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e'
-                                },
-                                body: JSON.stringify(reportsArray)
-                            }).catch(() => {}); // Silent fail for cloud sync
-                        }
-                    } catch (error) {
-                        // Silent fail - local storage already succeeded
-                    }
-                }
-                
-                return true;
-            }
-        };
-
-        // Fast local storage operations
-        async function loadReports() {
-            reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+        // Simple local storage functions
+        function loadReports() {
+            reports = JSON.parse(localStorage.getItem('schoolReports') || '[]');
         }
 
-        async function saveReports() {
-            localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
-            localStorage.setItem('lastSyncTime', new Date().toISOString());
-            
-            // Optional cloud sync in background (non-blocking)
-            if (cloudStorageEnabled) {
-                cloudDB.saveReports(reports).catch(() => {});
-            }
+        function saveReports() {
+            localStorage.setItem('schoolReports', JSON.stringify(reports));
+            localStorage.setItem('lastUpdate', new Date().toLocaleString());
         }
 
         // Show loading state
@@ -431,11 +364,11 @@
             }
         }
 
-        // Report submission
+        // Report submission - pure local storage
         async function submitReport(event) {
             event.preventDefault();
             
-            showLoading('submitBtn', 'Submitting...');
+            showLoading('submitBtn', 'Saving...');
             
             const report = {
                 Name: document.getElementById('name').value || 'anonymous',
@@ -451,7 +384,7 @@
             };
 
             reports.push(report);
-            await saveReports();
+            saveReports();
             
             hideLoading('submitBtn', 'Submit Report');
             showNotification('Your report has been saved! Your voice matters!');
@@ -461,8 +394,8 @@
             showMainMenu();
         }
 
-        // Admin view reports - optimized for speed
-        async function viewReports(event) {
+        // Admin view reports - instant local loading
+        function viewReports(event) {
             if (event) {
                 event.preventDefault();
             }
@@ -476,7 +409,7 @@
 
             showLoading('viewReportsBtn', 'Loading...');
             
-            // Fast local load - no waiting for network
+            // Load from local storage instantly
             loadReports();
             displayReports();
             hideLoading('viewReportsBtn', 'View Reports');
@@ -491,20 +424,16 @@
                 return;
             }
 
-            const lastSync = localStorage.getItem('lastSyncTime');
-            const syncTime = lastSync ? new Date(lastSync).toLocaleString() : 'Never';
+            const lastUpdate = localStorage.getItem('lastUpdate') || 'Never';
             
-            let html = `<h3>All Reports (${reports.length}) - Last Updated: ${syncTime}</h3>`;
-            
-            // Use document fragment for better performance
-            const fragment = document.createDocumentFragment();
+            let html = `<h3>All Reports (${reports.length}) - Last Updated: ${lastUpdate}</h3>`;
             
             for (let i = 0; i < reports.length; i++) {
                 const report = reports[i];
                 html += '<div class="report-item">';
                 html += '<h4>Report #' + (i + 1) + ' - ' + (report.Severity || 'Unknown') + '</h4>';
                 
-                // Display report fields
+                // Display report fields with XSS protection
                 if (report.Name) html += '<div class="report-field"><strong>Name:</strong> ' + escapeHtml(report.Name) + '</div>';
                 if (report.Grade) html += '<div class="report-field"><strong>Grade:</strong> ' + escapeHtml(report.Grade) + '</div>';
                 if (report.Location) html += '<div class="report-field"><strong>Location:</strong> ' + escapeHtml(report.Location) + '</div>';
@@ -534,18 +463,17 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // Fast delete operation
-        async function deleteReport(reportId) {
+        // Instant delete operation - no API calls
+        function deleteReport(reportId) {
             if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
-                // Immediate local operation - no waiting
                 reports = reports.filter(r => r.id !== reportId);
-                saveReports(); // This is now fast and local
-                displayReports(); // Immediate refresh
+                saveReports();
+                displayReports();
                 showNotification('Report deleted successfully!');
             }
         }
 
-        // Initialize
+        // Initialize app
         function init() {
             loadReports();
         }
