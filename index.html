@@ -218,7 +218,6 @@
     <div id="connectionStatus" class="connection-status disconnected">🔴 Connecting...</div>
     
     <div class="container">
-        <!-- Main Menu -->
         <div id="mainMenu">
             <h1>Welcome to FixEd!</h1>
             <p>What can we do for you today?</p>
@@ -227,13 +226,12 @@
             <button class="exit-btn" onclick="exitApp()">Exit</button>
         </div>
 
-        <!-- Report Form -->
         <div id="reportForm" class="form-container">
             <h2>Submit a Report</h2>
             <form id="reportFormData" onsubmit="submitReport(event)">
                 <div class="form-group">
-                    <label for="name">Name (or type 'anonymous'):</label>
-                    <input type="text" id="name" placeholder="Enter your name or 'anonymous'">
+                    <label for="name">Name (optional):</label>
+                    <input type="text" id="name" placeholder="Enter your name or leave blank for anonymous">
                 </div>
                 
                 <div class="form-group">
@@ -257,7 +255,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="peopleInvolved">People Involved:</label>
+                    <label for="peopleInvolved">People Involved (optional):</label>
                     <input type="text" id="peopleInvolved" placeholder="List any names or details of people involved">
                 </div>
                 
@@ -283,7 +281,6 @@
             </form>
         </div>
 
-        <!-- Admin Panel -->
         <div id="adminPanel" class="form-container">
             <h2>Admin Panel</h2>
             <form onsubmit="viewReports(event)">
@@ -301,30 +298,30 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
+        // NOTE: Please replace this with your actual Firebase configuration
+        // You can find this in your Firebase project settings
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // This is a placeholder for your actual admin password
         const ADMIN_PASS = "@#Lets.Fix.Schools";
+        
         let reports = [];
         let db;
         let isFirebaseConnected = false;
-
-        // Firebase configuration - using public demo config for testing
-        const firebaseConfig = {
-            apiKey: "AIzaSyDemoKey123456789",
-            authDomain: "fixed-reports-demo.firebaseapp.com",
-            projectId: "fixed-reports-demo",
-            storageBucket: "fixed-reports-demo.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456"
-        };
-
-        // Fallback to JSONBin.io for cloud storage
         const API_URL = 'https://api.jsonbin.io/v3/b/676414cbe41b4d34e462b4a8';
         const API_KEY = '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e';
-        
+
         const cloudDB = {
             async getReports() {
                 try {
@@ -334,14 +331,15 @@
                             'X-Master-Key': API_KEY,
                         }
                     });
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.record || [];
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch from cloud');
                     }
-                    throw new Error('Failed to fetch');
+                    const data = await response.json();
+                    return data.record || [];
                 } catch (error) {
-                    console.log('Using local storage fallback');
-                    return JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+                    console.error('Cloud fallback failed, checking local storage:', error);
+                    const localData = localStorage.getItem('schoolReportsBackup');
+                    return localData ? JSON.parse(localData) : [];
                 }
             },
             
@@ -355,43 +353,43 @@
                         },
                         body: JSON.stringify(reportsArray)
                     });
-                    if (response.ok) {
-                        localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
-                        return true;
+                    if (!response.ok) {
+                        throw new Error('Failed to save to cloud');
                     }
-                    throw new Error('Failed to save');
-                } catch (error) {
-                    console.log('Using local storage fallback');
                     localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
                     return true;
+                } catch (error) {
+                    console.error('Cloud save failed, saving to local storage:', error);
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
+                    return false;
                 }
             }
         };
 
-        // Initialize Firebase
         function initFirebase() {
             try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                isFirebaseConnected = true;
-                updateConnectionStatus(true);
-                console.log('Firebase connected successfully');
-                
-                // Set up real-time listener for reports
-                db.collection('reports').onSnapshot((snapshot) => {
-                    reports = [];
-                    snapshot.forEach((doc) => {
-                        reports.push({...doc.data(), id: doc.id});
+                if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    isFirebaseConnected = true;
+                    updateConnectionStatus(true);
+                    console.log('Firebase connected successfully');
+                    
+                    db.collection('reports').onSnapshot((snapshot) => {
+                        reports = [];
+                        snapshot.forEach((doc) => {
+                            reports.push({...doc.data(), id: doc.id});
+                        });
+                        console.log('Reports updated from Firebase:', reports.length);
+                        if (document.getElementById('reportsDisplay').style.display === 'block') {
+                            displayReports();
+                        }
                     });
-                    console.log('Reports updated from Firebase:', reports.length);
-                    // Refresh display if admin panel is open
-                    if (document.getElementById('reportsDisplay').style.display === 'block') {
-                        displayReports();
-                    }
-                });
-                
+                } else {
+                    throw new Error("Firebase configuration is not set up.");
+                }
             } catch (error) {
-                console.log('Firebase failed, using cloud fallback:', error);
+                console.warn('Firebase connection failed, falling back to cloud sync:', error.message);
                 isFirebaseConnected = false;
                 updateConnectionStatus(false);
                 loadReportsFromCloud();
@@ -409,35 +407,24 @@
             }
         }
 
-        // Load reports from cloud fallback
         async function loadReportsFromCloud() {
             try {
                 reports = await cloudDB.getReports();
                 console.log('Loaded reports from cloud:', reports.length);
             } catch (error) {
                 console.error("Error loading reports:", error);
-                reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+                reports = []; 
             }
         }
 
-        // Save reports to Firebase or cloud
         async function saveReports() {
             if (isFirebaseConnected) {
-                // Firebase handles real-time sync automatically
-                return true;
+                return true; 
             } else {
-                try {
-                    await cloudDB.saveReports(reports);
-                    return true;
-                } catch (error) {
-                    console.error("Error saving reports:", error);
-                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
-                    return false;
-                }
+                return await cloudDB.saveReports(reports);
             }
         }
 
-        // Show loading state
         function showLoading(buttonId, text = 'Loading...') {
             const button = document.getElementById(buttonId);
             if (button) {
@@ -446,7 +433,6 @@
             }
         }
 
-        // Hide loading state
         function hideLoading(buttonId, text) {
             const button = document.getElementById(buttonId);
             if (button) {
@@ -455,7 +441,6 @@
             }
         }
 
-        // Navigation functions
         function showMainMenu() {
             document.getElementById('mainMenu').style.display = 'block';
             document.getElementById('reportForm').style.display = 'none';
@@ -486,7 +471,6 @@
             }
         }
 
-        // Report submission
         async function submitReport(event) {
             event.preventDefault();
             
@@ -507,29 +491,25 @@
 
             try {
                 if (isFirebaseConnected) {
-                    // Add to Firebase
                     await db.collection('reports').add(report);
                 } else {
-                    // Add to local array and sync to cloud
                     report.id = Date.now() + Math.random();
                     reports.push(report);
                     await cloudDB.saveReports(reports);
                 }
                 
                 hideLoading('submitBtn', 'Submit Report');
-                alert('Your report has been saved and synced across all devices! Your voice matters!');
+                showNotification('Your report has been submitted! Your voice matters!', 'success');
                 
-                // Clear form
                 document.getElementById('reportFormData').reset();
                 showMainMenu();
             } catch (error) {
                 hideLoading('submitBtn', 'Submit Report');
                 console.error('Error submitting report:', error);
-                alert('Error submitting report. Please try again.');
+                showNotification('Error submitting report. Please try again.', 'error');
             }
         }
 
-        // Admin view reports
         async function viewReports(event) {
             if (event) {
                 event.preventDefault();
@@ -546,14 +526,13 @@
             
             try {
                 if (!isFirebaseConnected) {
-                    // Refresh from cloud if not using Firebase
                     await loadReportsFromCloud();
                 }
                 displayReports();
                 hideLoading('viewReportsBtn', 'View Reports');
             } catch (error) {
                 hideLoading('viewReportsBtn', 'View Reports');
-                alert('Error loading reports. Please try again.');
+                showNotification('Error loading reports. Please try again.', 'error');
             }
         }
 
@@ -566,26 +545,25 @@
                 return;
             }
 
-            let html = '<h3>All Reports (' + reports.length + ') - Real-time Sync Across All Devices</h3>';
+            let html = `<h3>All Reports (${reports.length}) - ${isFirebaseConnected ? 'Real-time Sync Across All Devices' : 'Cloud Sync'}</h3>`;
             
             for (let i = 0; i < reports.length; i++) {
                 const report = reports[i];
                 html += '<div class="report-item">';
-                html += '<h4>Report #' + (i + 1) + ' - ' + (report.Severity || 'Unknown') + '</h4>';
+                html += `<h4>Report #${i + 1} - ${(report.Severity || 'Unknown')}</h4>`;
                 
-                // Display report fields
-                if (report.Name) html += '<div class="report-field"><strong>Name:</strong> ' + report.Name + '</div>';
-                if (report.Grade) html += '<div class="report-field"><strong>Grade:</strong> ' + report.Grade + '</div>';
-                if (report.Location) html += '<div class="report-field"><strong>Location:</strong> ' + report.Location + '</div>';
-                if (report['Issue Type']) html += '<div class="report-field"><strong>Issue Type:</strong> ' + report['Issue Type'] + '</div>';
-                if (report.Description) html += '<div class="report-field"><strong>Description:</strong> ' + report.Description + '</div>';
-                if (report['People Involved']) html += '<div class="report-field"><strong>People Involved:</strong> ' + report['People Involved'] + '</div>';
-                if (report.When) html += '<div class="report-field"><strong>When:</strong> ' + report.When + '</div>';
-                if (report.Timestamp) html += '<div class="report-field"><strong>Submitted:</strong> ' + report.Timestamp + '</div>';
-                if (report.Device) html += '<div class="report-field"><strong>Submitted From:</strong> ' + report.Device + '</div>';
+                if (report.Name) html += `<div class="report-field"><strong>Name:</strong> ${report.Name}</div>`;
+                if (report.Grade) html += `<div class="report-field"><strong>Grade:</strong> ${report.Grade}</div>`;
+                if (report.Location) html += `<div class="report-field"><strong>Location:</strong> ${report.Location}</div>`;
+                if (report['Issue Type']) html += `<div class="report-field"><strong>Issue Type:</strong> ${report['Issue Type']}</div>`;
+                if (report.Description) html += `<div class="report-field"><strong>Description:</strong> ${report.Description}</div>`;
+                if (report['People Involved']) html += `<div class="report-field"><strong>People Involved:</strong> ${report['People Involved']}</div>`;
+                if (report.When) html += `<div class="report-field"><strong>When:</strong> ${report.When}</div>`;
+                if (report.Timestamp) html += `<div class="report-field"><strong>Submitted:</strong> ${report.Timestamp}</div>`;
+                if (report.Device) html += `<div class="report-field"><strong>Submitted From:</strong> ${report.Device}</div>`;
                 
                 html += '<div class="report-actions">';
-                html += '<button class="delete-btn" onclick="deleteReport(\'' + report.id + '\')">Issue Resolved - Delete Report</button>';
+                html += `<button class="delete-btn" onclick="deleteReport('${report.id}')">Issue Resolved - Delete Report</button>`;
                 html += '</div>';
                 html += '</div>';
             }
@@ -594,32 +572,29 @@
             reportsDisplay.style.display = 'block';
         }
 
-        // Delete report function - FIXED
         async function deleteReport(reportId) {
             if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
                 try {
                     if (isFirebaseConnected) {
-                        // Delete from Firebase
                         await db.collection('reports').doc(reportId).delete();
-                        showNotification('Report deleted and synced across all devices!');
+                        showNotification('Report deleted and synced across all devices!', 'success');
                     } else {
-                        // Delete from local array and sync to cloud
-                        reports = reports.filter(r => r.id !== reportId);
+                        reports = reports.filter(r => r.id.toString() !== reportId.toString());
                         await cloudDB.saveReports(reports);
-                        displayReports(); // Refresh display
-                        showNotification('Report deleted and synced to cloud!');
+                        displayReports(); 
+                        showNotification('Report deleted and synced to cloud!', 'success');
                     }
                 } catch (error) {
                     console.error('Error deleting report:', error);
-                    alert('Error deleting report. Please try again.');
+                    showNotification('Error deleting report. Please try again.', 'error');
                 }
             }
         }
 
-        function showNotification(message) {
+        function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.textContent = message;
-            notification.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+            notification.className = 'status-message status-' + type;
             document.body.appendChild(notification);
             setTimeout(() => {
                 if (document.body.contains(notification)) {
@@ -628,10 +603,8 @@
             }, 4000);
         }
 
-        // Initialize
         function init() {
             initFirebase();
-            // If Firebase fails, it will automatically fall back to cloud storage
         }
 
         window.onload = init;
