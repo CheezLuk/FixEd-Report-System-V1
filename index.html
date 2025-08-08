@@ -201,21 +201,52 @@
             border-radius: 15px;
             font-size: 12px;
             font-weight: bold;
+            z-index: 1000;
         }
 
-        .connected {
+        .firebase-connected {
             background-color: #d4edda;
             color: #155724;
         }
 
-        .disconnected {
+        .firebase-error {
             background-color: #f8d7da;
             color: #721c24;
+        }
+
+        .firebase-connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .refresh-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #138496;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
-    <div id="connectionStatus" class="connection-status disconnected">🔴 Connecting...</div>
+    <div id="connectionStatus" class="connection-status firebase-connecting">🟡 Connecting to Firebase...</div>
     
     <div class="container">
         <!-- Main Menu -->
@@ -301,144 +332,226 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <!-- Firebase SDK v9 (Modular) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-    <script>
-        const ADMIN_PASS = "@#Lets.Fix.Schools";
-        let reports = [];
-        let db;
-        let isFirebaseConnected = false;
-
-        // Firebase configuration - using public demo config for testing
+        // Your Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyDemoKey123456789",
-            authDomain: "fixed-reports-demo.firebaseapp.com",
-            projectId: "fixed-reports-demo",
-            storageBucket: "fixed-reports-demo.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456"
-        };
-
-        // Fallback to JSONBin.io for cloud storage
-        const API_URL = 'https://api.jsonbin.io/v3/b/676414cbe41b4d34e462b4a8';
-        const API_KEY = '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e';
-        
-        const cloudDB = {
-            async getReports() {
-                try {
-                    const response = await fetch(`${API_URL}/latest`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Master-Key': API_KEY,
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.record || [];
-                    }
-                    throw new Error('Failed to fetch');
-                } catch (error) {
-                    console.log('Using local storage fallback');
-                    return JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
-                }
-            },
-            
-            async saveReports(reportsArray) {
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': API_KEY,
-                        },
-                        body: JSON.stringify(reportsArray)
-                    });
-                    if (response.ok) {
-                        localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
-                        return true;
-                    }
-                    throw new Error('Failed to save');
-                } catch (error) {
-                    console.log('Using local storage fallback');
-                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
-                    return true;
-                }
-            }
+            apiKey: "AIzaSyC--qumlfiy7QE48HTEAW3DyKlV7GLo-1E",
+            authDomain: "fir-schoolfixed.firebaseapp.com",
+            projectId: "fir-schoolfixed",
+            storageBucket: "fir-schoolfixed.firebasestorage.app",
+            messagingSenderId: "935512141284",
+            appId: "1:935512141284:web:7259aa61ca91788738abf1"
         };
 
         // Initialize Firebase
-        function initFirebase() {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                isFirebaseConnected = true;
-                updateConnectionStatus(true);
-                console.log('Firebase connected successfully');
-                
-                // Set up real-time listener for reports
-                db.collection('reports').onSnapshot((snapshot) => {
-                    reports = [];
-                    snapshot.forEach((doc) => {
-                        reports.push({...doc.data(), id: doc.id});
-                    });
-                    console.log('Reports updated from Firebase:', reports.length);
-                    // Refresh display if admin panel is open
-                    if (document.getElementById('reportsDisplay').style.display === 'block') {
-                        displayReports();
-                    }
-                });
-                
-            } catch (error) {
-                console.log('Firebase failed, using cloud fallback:', error);
-                isFirebaseConnected = false;
-                updateConnectionStatus(false);
-                loadReportsFromCloud();
-            }
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const ADMIN_PASS = "@#Lets.Fix.Schools";
+        let reports = [];
+        let reportsListener = null;
+        let isFirebaseReady = false;
 
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connectionStatus');
-            if (connected) {
-                statusEl.textContent = '🟢 Connected (Real-time)';
-                statusEl.className = 'connection-status connected';
-            } else {
-                statusEl.textContent = '🟡 Cloud Sync';
-                statusEl.className = 'connection-status disconnected';
+        class FirebaseReportingSystem {
+            constructor() {
+                this.init();
             }
-        }
 
-        // Load reports from cloud fallback
-        async function loadReportsFromCloud() {
-            try {
-                reports = await cloudDB.getReports();
-                console.log('Loaded reports from cloud:', reports.length);
-            } catch (error) {
-                console.error("Error loading reports:", error);
-                reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
-            }
-        }
-
-        // Save reports to Firebase or cloud
-        async function saveReports() {
-            if (isFirebaseConnected) {
-                // Firebase handles real-time sync automatically
-                return true;
-            } else {
+            async init() {
                 try {
-                    await cloudDB.saveReports(reports);
+                    // Test Firebase connection
+                    await this.testFirebaseConnection();
+                    isFirebaseReady = true;
+                    this.updateStatus('firebase-connected', '🟢 Firebase Real-time Connected');
+                    this.showNotification('✅ Connected to Firebase! Real-time sync active across all devices.');
+                    console.log('Firebase initialized successfully');
+                } catch (error) {
+                    console.error('Firebase initialization failed:', error);
+                    this.updateStatus('firebase-error', '🔴 Firebase Connection Failed');
+                    this.fallbackToLocal();
+                }
+            }
+
+            async testFirebaseConnection() {
+                // Try to get the reports collection to test connection
+                const reportsRef = collection(db, 'reports');
+                return new Promise((resolve, reject) => {
+                    const unsubscribe = onSnapshot(reportsRef, 
+                        (snapshot) => {
+                            unsubscribe();
+                            resolve(true);
+                        },
+                        (error) => {
+                            unsubscribe();
+                            reject(error);
+                        }
+                    );
+                });
+            }
+
+            updateStatus(className, text) {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.className = `connection-status ${className}`;
+                statusEl.textContent = text;
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.textContent = message;
+                const bgColor = type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#dc3545';
+                const textColor = type === 'warning' ? '#000' : '#fff';
+                
+                notification.style.cssText = `
+                    position: fixed; top: 60px; right: 20px; 
+                    background: ${bgColor}; color: ${textColor}; 
+                    padding: 12px 18px; border-radius: 8px; z-index: 1001; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 350px;
+                    font-weight: bold; border: 2px solid rgba(255,255,255,0.2);
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Add entrance animation
+                notification.style.transform = 'translateX(400px)';
+                notification.style.transition = 'transform 0.3s ease-out';
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        notification.style.transform = 'translateX(400px)';
+                        setTimeout(() => {
+                            if (document.body.contains(notification)) {
+                                document.body.removeChild(notification);
+                            }
+                        }, 300);
+                    }
+                }, 5000);
+            }
+
+            setupRealtimeListener() {
+                if (!isFirebaseReady) return;
+
+                const reportsRef = collection(db, 'reports');
+                
+                // Remove existing listener
+                if (reportsListener) {
+                    reportsListener();
+                    reportsListener = null;
+                }
+
+                // Set up real-time listener
+                reportsListener = onSnapshot(reportsRef, (snapshot) => {
+                    const newReports = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        newReports.push({
+                            id: doc.id,
+                            ...data,
+                            // Convert Firebase timestamp to readable format
+                            Timestamp: data.createdAt ? data.createdAt.toDate().toLocaleString() : data.Timestamp
+                        });
+                    });
+
+                    const oldCount = reports.length;
+                    reports = newReports.sort((a, b) => {
+                        const aTime = a.createdAt ? a.createdAt.toDate() : new Date(a.Timestamp || 0);
+                        const bTime = b.createdAt ? b.createdAt.toDate() : new Date(b.Timestamp || 0);
+                        return bTime - aTime; // Newest first
+                    });
+
+                    console.log(`Reports updated: ${reports.length} total reports`);
+                    
+                    // Update display if admin panel is open
+                    if (document.getElementById('reportsDisplay').style.display === 'block') {
+                        window.displayReports();
+                        
+                        // Show notification for new reports (but not on initial load)
+                        if (oldCount > 0 && reports.length > oldCount) {
+                            this.showNotification(`📢 ${reports.length - oldCount} new report(s) received!`);
+                            // Add pulse animation to new reports
+                            setTimeout(() => {
+                                const reportItems = document.querySelectorAll('.report-item');
+                                for (let i = 0; i < reports.length - oldCount; i++) {
+                                    if (reportItems[i]) {
+                                        reportItems[i].classList.add('pulse');
+                                        setTimeout(() => reportItems[i].classList.remove('pulse'), 2000);
+                                    }
+                                }
+                            }, 100);
+                        }
+                    }
+
+                    // Update local backup
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+                }, (error) => {
+                    console.error("Error with real-time listener:", error);
+                    this.showNotification('❌ Real-time connection lost. Using local data.', 'error');
+                    this.fallbackToLocal();
+                });
+            }
+
+            async addReport(reportData) {
+                if (!isFirebaseReady) {
+                    throw new Error('Firebase not ready');
+                }
+
+                try {
+                    const reportsRef = collection(db, 'reports');
+                    const docRef = await addDoc(reportsRef, {
+                        ...reportData,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    
+                    console.log("Report added with ID: ", docRef.id);
+                    return docRef.id;
+                } catch (error) {
+                    console.error("Error adding report: ", error);
+                    throw error;
+                }
+            }
+
+            async deleteReport(reportId) {
+                if (!isFirebaseReady) {
+                    throw new Error('Firebase not ready');
+                }
+
+                try {
+                    const reportRef = doc(db, 'reports', reportId);
+                    await deleteDoc(reportRef);
+                    console.log("Report deleted with ID: ", reportId);
                     return true;
                 } catch (error) {
-                    console.error("Error saving reports:", error);
-                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
-                    return false;
+                    console.error("Error deleting report: ", error);
+                    throw error;
+                }
+            }
+
+            fallbackToLocal() {
+                isFirebaseReady = false;
+                this.updateStatus('firebase-error', '🔴 Using Local Storage');
+                reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+                console.log('Falling back to local storage with', reports.length, 'reports');
+            }
+
+            cleanup() {
+                if (reportsListener) {
+                    reportsListener();
+                    reportsListener = null;
                 }
             }
         }
 
-        // Show loading state
-        function showLoading(buttonId, text = 'Loading...') {
+        const firebaseSystem = new FirebaseReportingSystem();
+
+        // Global functions for HTML interactions
+        window.showLoading = function(buttonId, text = 'Loading...') {
             const button = document.getElementById(buttonId);
             if (button) {
                 button.innerHTML = '<div class="loading"></div>' + text;
@@ -446,8 +559,7 @@
             }
         }
 
-        // Hide loading state
-        function hideLoading(buttonId, text) {
+        window.hideLoading = function(buttonId, text) {
             const button = document.getElementById(buttonId);
             if (button) {
                 button.innerHTML = text;
@@ -455,21 +567,20 @@
             }
         }
 
-        // Navigation functions
-        function showMainMenu() {
+        window.showMainMenu = function() {
             document.getElementById('mainMenu').style.display = 'block';
             document.getElementById('reportForm').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
             document.getElementById('reportsDisplay').style.display = 'none';
         }
 
-        function showReportForm() {
+        window.showReportForm = function() {
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('reportForm').style.display = 'block';
             document.getElementById('adminPanel').style.display = 'none';
         }
 
-        function showAdminPanel() {
+        window.showAdminPanel = function() {
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('reportForm').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
@@ -477,8 +588,9 @@
             document.getElementById('reportsDisplay').style.display = 'none';
         }
 
-        function exitApp() {
+        window.exitApp = function() {
             if (confirm('Are you sure you want to exit FixEd?')) {
+                firebaseSystem.cleanup();
                 window.close();
                 setTimeout(() => {
                     alert('Please close this tab to exit the application.');
@@ -486,11 +598,10 @@
             }
         }
 
-        // Report submission
-        async function submitReport(event) {
+        window.submitReport = async function(event) {
             event.preventDefault();
             
-            showLoading('submitBtn', 'Submitting...');
+            window.showLoading('submitBtn', 'Submitting...');
             
             const report = {
                 Name: document.getElementById('name').value || 'anonymous',
@@ -502,35 +613,36 @@
                 When: document.getElementById('when').value,
                 Severity: document.getElementById('severity').value,
                 Timestamp: new Date().toLocaleString(),
-                Device: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Computer'
+                Device: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Computer',
+                UserAgent: navigator.userAgent
             };
 
             try {
-                if (isFirebaseConnected) {
-                    // Add to Firebase
-                    await db.collection('reports').add(report);
+                if (isFirebaseReady) {
+                    await firebaseSystem.addReport(report);
+                    firebaseSystem.showNotification('🎉 Report submitted successfully! Now visible on ALL devices in real-time.');
                 } else {
-                    // Add to local array and sync to cloud
-                    report.id = Date.now() + Math.random();
+                    // Fallback to local storage
+                    report.id = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                     reports.push(report);
-                    await cloudDB.saveReports(reports);
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+                    firebaseSystem.showNotification('⚠️ Report saved locally. Will sync when Firebase connection is restored.', 'warning');
                 }
                 
-                hideLoading('submitBtn', 'Submit Report');
-                alert('Your report has been saved and synced across all devices! Your voice matters!');
+                window.hideLoading('submitBtn', 'Submit Report');
                 
-                // Clear form
+                // Clear form and return to main menu
                 document.getElementById('reportFormData').reset();
-                showMainMenu();
+                window.showMainMenu();
+                
             } catch (error) {
-                hideLoading('submitBtn', 'Submit Report');
+                window.hideLoading('submitBtn', 'Submit Report');
                 console.error('Error submitting report:', error);
-                alert('Error submitting report. Please try again.');
+                firebaseSystem.showNotification('❌ Error submitting report. Please try again.', 'error');
             }
         }
 
-        // Admin view reports
-        async function viewReports(event) {
+        window.viewReports = async function(event) {
             if (event) {
                 event.preventDefault();
             }
@@ -542,50 +654,69 @@
                 return;
             }
 
-            showLoading('viewReportsBtn', 'Loading...');
+            window.showLoading('viewReportsBtn', 'Loading...');
             
             try {
-                if (!isFirebaseConnected) {
-                    // Refresh from cloud if not using Firebase
-                    await loadReportsFromCloud();
+                if (isFirebaseReady) {
+                    firebaseSystem.setupRealtimeListener();
+                    firebaseSystem.showNotification('📡 Real-time monitoring active! Reports will update automatically.');
+                } else {
+                    // Load from local storage
+                    reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
                 }
-                displayReports();
-                hideLoading('viewReportsBtn', 'View Reports');
+                
+                window.displayReports();
+                window.hideLoading('viewReportsBtn', 'View Reports');
             } catch (error) {
-                hideLoading('viewReportsBtn', 'View Reports');
-                alert('Error loading reports. Please try again.');
+                window.hideLoading('viewReportsBtn', 'View Reports');
+                firebaseSystem.showNotification('❌ Error loading reports.', 'error');
+                window.displayReports(); // Show what we have locally
             }
         }
 
-        function displayReports() {
+        window.displayReports = function() {
             const reportsDisplay = document.getElementById('reportsDisplay');
             
             if (reports.length === 0) {
-                reportsDisplay.innerHTML = '<h3>No Reports Found</h3><p>All reports have been resolved!</p>';
+                reportsDisplay.innerHTML = `
+                    <h3>No Reports Found</h3>
+                    <p>All reports have been resolved or no reports have been submitted yet.</p>
+                    <p><strong>Status:</strong> ${isFirebaseReady ? '🟢 Real-time monitoring active' : '🔴 Using local data'}</p>
+                `;
                 reportsDisplay.style.display = 'block';
                 return;
             }
 
-            let html = '<h3>All Reports (' + reports.length + ') - Real-time Sync Across All Devices</h3>';
+            const statusText = isFirebaseReady ? 
+                '🟢 Real-time sync active - Updates automatically' : 
+                '🔴 Local data only - Firebase connection needed for sync';
+
+            let html = `
+                <h3>All Reports (${reports.length}) - Cross-Device Sync</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                    ${statusText}<br>
+                    Last updated: ${new Date().toLocaleTimeString()}
+                </p>
+            `;
             
             for (let i = 0; i < reports.length; i++) {
                 const report = reports[i];
                 html += '<div class="report-item">';
-                html += '<h4>Report #' + (i + 1) + ' - ' + (report.Severity || 'Unknown') + '</h4>';
+                html += `<h4>Report #${i + 1} - ${report.Severity || 'Unknown'} Severity</h4>`;
                 
                 // Display report fields
-                if (report.Name) html += '<div class="report-field"><strong>Name:</strong> ' + report.Name + '</div>';
-                if (report.Grade) html += '<div class="report-field"><strong>Grade:</strong> ' + report.Grade + '</div>';
-                if (report.Location) html += '<div class="report-field"><strong>Location:</strong> ' + report.Location + '</div>';
-                if (report['Issue Type']) html += '<div class="report-field"><strong>Issue Type:</strong> ' + report['Issue Type'] + '</div>';
-                if (report.Description) html += '<div class="report-field"><strong>Description:</strong> ' + report.Description + '</div>';
-                if (report['People Involved']) html += '<div class="report-field"><strong>People Involved:</strong> ' + report['People Involved'] + '</div>';
-                if (report.When) html += '<div class="report-field"><strong>When:</strong> ' + report.When + '</div>';
-                if (report.Timestamp) html += '<div class="report-field"><strong>Submitted:</strong> ' + report.Timestamp + '</div>';
-                if (report.Device) html += '<div class="report-field"><strong>Submitted From:</strong> ' + report.Device + '</div>';
+                if (report.Name) html += `<div class="report-field"><strong>Name:</strong> ${report.Name}</div>`;
+                if (report.Grade) html += `<div class="report-field"><strong>Grade:</strong> ${report.Grade}</div>`;
+                if (report.Location) html += `<div class="report-field"><strong>Location:</strong> ${report.Location}</div>`;
+                if (report['Issue Type']) html += `<div class="report-field"><strong>Issue Type:</strong> ${report['Issue Type']}</div>`;
+                if (report.Description) html += `<div class="report-field"><strong>Description:</strong> ${report.Description}</div>`;
+                if (report['People Involved']) html += `<div class="report-field"><strong>People Involved:</strong> ${report['People Involved']}</div>`;
+                if (report.When) html += `<div class="report-field"><strong>When:</strong> ${report.When}</div>`;
+                if (report.Timestamp) html += `<div class="report-field"><strong>Submitted:</strong> ${report.Timestamp}</div>`;
+                if (report.Device) html += `<div class="report-field"><strong>Device:</strong> ${report.Device}</div>`;
                 
                 html += '<div class="report-actions">';
-                html += '<button class="delete-btn" onclick="deleteReport(\'' + report.id + '\')">Issue Resolved - Delete Report</button>';
+                html += `<button class="delete-btn" onclick="deleteReport('${report.id}')">✅ Issue Resolved - Delete Report</button>`;
                 html += '</div>';
                 html += '</div>';
             }
@@ -594,47 +725,38 @@
             reportsDisplay.style.display = 'block';
         }
 
-        // Delete report function - FIXED
-        async function deleteReport(reportId) {
-            if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
+        window.deleteReport = async function(reportId) {
+            if (confirm('Are you sure you want to delete this report? This action will sync across ALL devices and cannot be undone.')) {
                 try {
-                    if (isFirebaseConnected) {
-                        // Delete from Firebase
-                        await db.collection('reports').doc(reportId).delete();
-                        showNotification('Report deleted and synced across all devices!');
+                    if (isFirebaseReady) {
+                        await firebaseSystem.deleteReport(reportId);
+                        firebaseSystem.showNotification('🗑️ Report deleted and synced across all devices!');
                     } else {
-                        // Delete from local array and sync to cloud
+                        // Delete from local storage
                         reports = reports.filter(r => r.id !== reportId);
-                        await cloudDB.saveReports(reports);
-                        displayReports(); // Refresh display
-                        showNotification('Report deleted and synced to cloud!');
+                        localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+                        window.displayReports();
+                        firebaseSystem.showNotification('🗑️ Report deleted locally. Will sync when Firebase connection is restored.', 'warning');
                     }
                 } catch (error) {
                     console.error('Error deleting report:', error);
-                    alert('Error deleting report. Please try again.');
+                    firebaseSystem.showNotification('❌ Error deleting report. Please try again.', 'error');
                 }
             }
         }
 
-        function showNotification(message) {
-            const notification = document.createElement('div');
-            notification.textContent = message;
-            notification.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
-            document.body.appendChild(notification);
-            setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
-                }
-            }, 4000);
-        }
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            firebaseSystem.cleanup();
+        });
 
-        // Initialize
-        function init() {
-            initFirebase();
-            // If Firebase fails, it will automatically fall back to cloud storage
-        }
+        // Show initial connection status
+        setTimeout(() => {
+            if (!isFirebaseReady) {
+                firebaseSystem.showNotification('⚠️ Firebase connection failed. Using local storage as fallback.', 'warning');
+            }
+        }, 3000);
 
-        window.onload = init;
     </script>
 </body>
 </html>
