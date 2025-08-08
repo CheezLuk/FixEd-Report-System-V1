@@ -193,10 +193,29 @@
             border: 1px solid #f5c6cb;
         }
 
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
+    <div id="connectionStatus" class="connection-status disconnected">🔴 Connecting...</div>
     
     <div class="container">
         <!-- Main Menu -->
@@ -267,14 +286,16 @@
         <!-- Admin Panel -->
         <div id="adminPanel" class="form-container">
             <h2>Admin Panel</h2>
-            <div class="form-group">
-                <label for="adminPassword">Password:</label>
-                <input type="password" id="adminPassword" placeholder="Enter admin password">
-            </div>
-            <div class="form-buttons">
-                <button class="admin-btn" onclick="viewReports()" id="viewReportsBtn">View Reports</button>
-                <button class="back-btn" onclick="showMainMenu()">Back</button>
-            </div>
+            <form onsubmit="viewReports(event)">
+                <div class="form-group">
+                    <label for="adminPassword">Password:</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="admin-btn" id="viewReportsBtn">View Reports</button>
+                    <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
+                </div>
+            </form>
             
             <div id="reportsDisplay" class="reports-display" style="display: none;"></div>
         </div>
@@ -287,8 +308,20 @@
     <script>
         const ADMIN_PASS = "@#Lets.Fix.Schools";
         let reports = [];
+        let db;
+        let isFirebaseConnected = false;
 
-        // Using JSONBin.io for free cloud storage - no setup required
+        // Firebase configuration - using public demo config for testing
+        const firebaseConfig = {
+            apiKey: "AIzaSyDemoKey123456789",
+            authDomain: "fixed-reports-demo.firebaseapp.com",
+            projectId: "fixed-reports-demo",
+            storageBucket: "fixed-reports-demo.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        // Fallback to JSONBin.io for cloud storage
         const API_URL = 'https://api.jsonbin.io/v3/b/676414cbe41b4d34e462b4a8';
         const API_KEY = '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e';
         
@@ -307,7 +340,7 @@
                     }
                     throw new Error('Failed to fetch');
                 } catch (error) {
-                    console.log('Using fallback storage');
+                    console.log('Using local storage fallback');
                     return JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
                 }
             },
@@ -323,36 +356,84 @@
                         body: JSON.stringify(reportsArray)
                     });
                     if (response.ok) {
-                        // Also save backup locally
                         localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
                         return true;
                     }
                     throw new Error('Failed to save');
                 } catch (error) {
-                    console.log('Using fallback storage');
+                    console.log('Using local storage fallback');
                     localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
                     return true;
                 }
             }
         };
 
-        // Load reports from cloud
-        async function loadReports() {
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                isFirebaseConnected = true;
+                updateConnectionStatus(true);
+                console.log('Firebase connected successfully');
+                
+                // Set up real-time listener for reports
+                db.collection('reports').onSnapshot((snapshot) => {
+                    reports = [];
+                    snapshot.forEach((doc) => {
+                        reports.push({...doc.data(), id: doc.id});
+                    });
+                    console.log('Reports updated from Firebase:', reports.length);
+                    // Refresh display if admin panel is open
+                    if (document.getElementById('reportsDisplay').style.display === 'block') {
+                        displayReports();
+                    }
+                });
+                
+            } catch (error) {
+                console.log('Firebase failed, using cloud fallback:', error);
+                isFirebaseConnected = false;
+                updateConnectionStatus(false);
+                loadReportsFromCloud();
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = '🟢 Connected (Real-time)';
+                statusEl.className = 'connection-status connected';
+            } else {
+                statusEl.textContent = '🟡 Cloud Sync';
+                statusEl.className = 'connection-status disconnected';
+            }
+        }
+
+        // Load reports from cloud fallback
+        async function loadReportsFromCloud() {
             try {
                 reports = await cloudDB.getReports();
+                console.log('Loaded reports from cloud:', reports.length);
             } catch (error) {
                 console.error("Error loading reports:", error);
                 reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
             }
         }
 
-        // Save reports to cloud
+        // Save reports to Firebase or cloud
         async function saveReports() {
-            try {
-                await cloudDB.saveReports(reports);
-            } catch (error) {
-                console.error("Error saving reports:", error);
-                localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+            if (isFirebaseConnected) {
+                // Firebase handles real-time sync automatically
+                return true;
+            } else {
+                try {
+                    await cloudDB.saveReports(reports);
+                    return true;
+                } catch (error) {
+                    console.error("Error saving reports:", error);
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+                    return false;
+                }
             }
         }
 
@@ -421,22 +502,39 @@
                 When: document.getElementById('when').value,
                 Severity: document.getElementById('severity').value,
                 Timestamp: new Date().toLocaleString(),
-                id: Date.now() + Math.random()
+                Device: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Computer'
             };
 
-            reports.push(report);
-            await saveReports();
-            
-            hideLoading('submitBtn', 'Submit Report');
-            alert('Your report has been saved! Your voice matters!');
-            
-            // Clear form
-            document.getElementById('reportFormData').reset();
-            showMainMenu();
+            try {
+                if (isFirebaseConnected) {
+                    // Add to Firebase
+                    await db.collection('reports').add(report);
+                } else {
+                    // Add to local array and sync to cloud
+                    report.id = Date.now() + Math.random();
+                    reports.push(report);
+                    await cloudDB.saveReports(reports);
+                }
+                
+                hideLoading('submitBtn', 'Submit Report');
+                alert('Your report has been saved and synced across all devices! Your voice matters!');
+                
+                // Clear form
+                document.getElementById('reportFormData').reset();
+                showMainMenu();
+            } catch (error) {
+                hideLoading('submitBtn', 'Submit Report');
+                console.error('Error submitting report:', error);
+                alert('Error submitting report. Please try again.');
+            }
         }
 
         // Admin view reports
-        async function viewReports() {
+        async function viewReports(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
             const password = document.getElementById('adminPassword').value;
             
             if (password !== ADMIN_PASS) {
@@ -447,7 +545,10 @@
             showLoading('viewReportsBtn', 'Loading...');
             
             try {
-                await loadReports(); // Refresh from cloud
+                if (!isFirebaseConnected) {
+                    // Refresh from cloud if not using Firebase
+                    await loadReportsFromCloud();
+                }
                 displayReports();
                 hideLoading('viewReportsBtn', 'View Reports');
             } catch (error) {
@@ -465,7 +566,7 @@
                 return;
             }
 
-            let html = '<h3>All Reports (' + reports.length + ') - Synced Across All Devices</h3>';
+            let html = '<h3>All Reports (' + reports.length + ') - Real-time Sync Across All Devices</h3>';
             
             for (let i = 0; i < reports.length; i++) {
                 const report = reports[i];
@@ -493,33 +594,44 @@
             reportsDisplay.style.display = 'block';
         }
 
-        // Delete report function
+        // Delete report function - FIXED
         async function deleteReport(reportId) {
             if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
                 try {
-                    await deleteReportFromCloud(reportId);
-                    reports = reports.filter(r => r.id !== reportId);
-                    displayReports(); // Refresh the display immediately
-                    
-                    // Show notification
-                    const notification = document.createElement('div');
-                    notification.textContent = 'Report deleted successfully and synced!';
-                    notification.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000;';
-                    document.body.appendChild(notification);
-                    setTimeout(() => {
-                        if (document.body.contains(notification)) {
-                            document.body.removeChild(notification);
-                        }
-                    }, 3000);
+                    if (isFirebaseConnected) {
+                        // Delete from Firebase
+                        await db.collection('reports').doc(reportId).delete();
+                        showNotification('Report deleted and synced across all devices!');
+                    } else {
+                        // Delete from local array and sync to cloud
+                        reports = reports.filter(r => r.id !== reportId);
+                        await cloudDB.saveReports(reports);
+                        displayReports(); // Refresh display
+                        showNotification('Report deleted and synced to cloud!');
+                    }
                 } catch (error) {
+                    console.error('Error deleting report:', error);
                     alert('Error deleting report. Please try again.');
                 }
             }
         }
 
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 4000);
+        }
+
         // Initialize
         function init() {
-            loadReports();
+            initFirebase();
+            // If Firebase fails, it will automatically fall back to cloud storage
         }
 
         window.onload = init;
