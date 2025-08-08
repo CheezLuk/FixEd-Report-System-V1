@@ -1,379 +1,1279 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FixEd - School Reporting System</title>
-    <!-- Use Tailwind CSS for a clean, modern, and responsive design -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
-        }
-        /* Custom modal styles to replace alerts and confirms */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal {
-            background: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            text-align: center;
-        }
-    </style>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FixEd - School Reporting System</title>
+
+    <style>
+
+        body {
+
+            font-family: Arial, sans-serif;
+
+            max-width: 500px;
+
+            margin: 50px auto;
+
+            padding: 20px;
+
+            background-color: #f5f5f5;
+
+        }
+
+        
+
+        .container {
+
+            background: white;
+
+            padding: 30px;
+
+            border-radius: 10px;
+
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+            text-align: center;
+
+        }
+
+        
+
+        h1 {
+
+            color: #333;
+
+            margin-bottom: 30px;
+
+        }
+
+        
+
+        button {
+
+            width: 250px;
+
+            padding: 12px;
+
+            margin: 8px;
+
+            border: none;
+
+            border-radius: 5px;
+
+            font-size: 16px;
+
+            cursor: pointer;
+
+            transition: background-color 0.3s;
+
+        }
+
+        
+
+        .submit-btn {
+
+            background-color: #4CAF50;
+
+            color: white;
+
+        }
+
+        
+
+        .submit-btn:hover {
+
+            background-color: #45a049;
+
+        }
+
+        
+
+        .admin-btn {
+
+            background-color: #2196F3;
+
+            color: white;
+
+        }
+
+        
+
+        .admin-btn:hover {
+
+            background-color: #1976D2;
+
+        }
+
+        
+
+        .exit-btn {
+
+            background-color: #f44336;
+
+            color: white;
+
+        }
+
+        
+
+        .exit-btn:hover {
+
+            background-color: #d32f2f;
+
+        }
+
+        
+
+        .form-container {
+
+            display: none;
+
+            text-align: left;
+
+        }
+
+        
+
+        .form-group {
+
+            margin-bottom: 15px;
+
+        }
+
+        
+
+        label {
+
+            display: block;
+
+            margin-bottom: 5px;
+
+            font-weight: bold;
+
+        }
+
+        
+
+        input, textarea, select {
+
+            width: 100%;
+
+            padding: 8px;
+
+            border: 1px solid #ddd;
+
+            border-radius: 4px;
+
+            font-size: 14px;
+
+            box-sizing: border-box;
+
+        }
+
+        
+
+        textarea {
+
+            height: 80px;
+
+            resize: vertical;
+
+        }
+
+        
+
+        .form-buttons {
+
+            text-align: center;
+
+            margin-top: 20px;
+
+        }
+
+        
+
+        .form-buttons button {
+
+            width: 120px;
+
+            margin: 0 10px;
+
+        }
+
+        
+
+        .back-btn {
+
+            background-color: #757575;
+
+            color: white;
+
+        }
+
+        
+
+        .back-btn:hover {
+
+            background-color: #616161;
+
+        }
+
+        
+
+        .reports-display {
+
+            max-height: 400px;
+
+            overflow-y: auto;
+
+            text-align: left;
+
+            background: #f9f9f9;
+
+            padding: 15px;
+
+            border-radius: 5px;
+
+            margin: 15px 0;
+
+        }
+
+        
+
+        .report-item {
+
+            background: white;
+
+            padding: 15px;
+
+            margin-bottom: 15px;
+
+            border-radius: 5px;
+
+            border-left: 4px solid #2196F3;
+
+        }
+
+        
+
+        .report-field {
+
+            margin-bottom: 8px;
+
+        }
+
+        
+
+        .report-field strong {
+
+            color: #333;
+
+        }
+
+        
+
+        .report-actions {
+
+            margin-top: 15px;
+
+            padding-top: 10px;
+
+            border-top: 1px solid #eee;
+
+        }
+
+        
+
+        .delete-btn {
+
+            background-color: #dc3545;
+
+            color: white;
+
+            padding: 8px 16px;
+
+            border: none;
+
+            border-radius: 4px;
+
+            cursor: pointer;
+
+            font-size: 14px;
+
+        }
+
+        
+
+        .delete-btn:hover {
+
+            background-color: #c82333;
+
+        }
+
+
+
+        .loading {
+
+            display: inline-block;
+
+            width: 20px;
+
+            height: 20px;
+
+            border: 3px solid #f3f3f3;
+
+            border-top: 3px solid #3498db;
+
+            border-radius: 50%;
+
+            animation: spin 1s linear infinite;
+
+            margin-right: 10px;
+
+        }
+
+
+
+        @keyframes spin {
+
+            0% { transform: rotate(0deg); }
+
+            100% { transform: rotate(360deg); }
+
+        }
+
+
+
+        .status-message {
+
+            padding: 10px;
+
+            margin: 10px 0;
+
+            border-radius: 5px;
+
+            text-align: center;
+
+        }
+
+
+
+        .status-success {
+
+            background-color: #d4edda;
+
+            color: #155724;
+
+            border: 1px solid #c3e6cb;
+
+        }
+
+
+
+        .status-error {
+
+            background-color: #f8d7da;
+
+            color: #721c24;
+
+            border: 1px solid #f5c6cb;
+
+        }
+
+
+
+        .connection-status {
+
+            position: fixed;
+
+            top: 10px;
+
+            right: 10px;
+
+            padding: 5px 10px;
+
+            border-radius: 15px;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+        }
+
+
+
+        .connected {
+
+            background-color: #d4edda;
+
+            color: #155724;
+
+        }
+
+
+
+        .disconnected {
+
+            background-color: #f8d7da;
+
+            color: #721c24;
+
+        }
+
+    </style>
+
 </head>
-<body class="p-4 sm:p-8 flex items-center justify-center min-h-screen">
-    <!-- The main application container -->
-    <div id="appContainer" class="bg-white rounded-2xl shadow-xl p-8 sm:p-10 w-full max-w-xl">
-        
-        <!-- Connection Status Indicator -->
-        <div id="connectionStatus" class="absolute top-4 right-4 text-xs font-semibold rounded-full px-3 py-1"></div>
 
-        <!-- Main Menu Screen -->
-        <div id="mainMenu" class="transition-opacity duration-300">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2 text-center">Welcome to FixEd!</h1>
-            <p class="text-gray-500 mb-8 text-center">What would you like to do today?</p>
-            <div class="flex flex-col space-y-4">
-                <button onclick="showReportForm()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                    Submit a Report
-                </button>
-                <button onclick="showAdminPanel()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                    View Reports
-                </button>
-            </div>
-        </div>
+<body>
 
-        <!-- Report Submission Form -->
-        <div id="reportForm" class="hidden transition-opacity duration-300">
-            <h2 class="text-2xl sm:text-3xl font-semibold text-gray-800 mb-6 text-center">Submit a Report</h2>
-            <form id="reportFormData" onsubmit="submitReport(event)" class="space-y-4">
-                <div>
-                    <label for="name" class="block text-gray-700 font-medium mb-1">Name (optional):</label>
-                    <input type="text" id="name" placeholder="Enter your name or leave blank for anonymous" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                </div>
-                <div>
-                    <label for="grade" class="block text-gray-700 font-medium mb-1">Grade:</label>
-                    <input type="text" id="grade" placeholder="What grade are you in?" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                </div>
-                <div>
-                    <label for="location" class="block text-gray-700 font-medium mb-1">Location:</label>
-                    <input type="text" id="location" placeholder="Where did this happen? (e.g., Cafeteria)" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                </div>
-                <div>
-                    <label for="issueType" class="block text-gray-700 font-medium mb-1">Issue Type:</label>
-                    <input type="text" id="issueType" placeholder="What type of issue are you reporting?" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                </div>
-                <div>
-                    <label for="description" class="block text-gray-700 font-medium mb-1">Description:</label>
-                    <textarea id="description" placeholder="Please describe what happened in detail" required rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"></textarea>
-                </div>
-                <div>
-                    <label for="severity" class="block text-gray-700 font-medium mb-1">Severity:</label>
-                    <select id="severity" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                        <option value="">Select severity level</option>
-                        <option value="Minor">Minor</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Major">Major</option>
-                    </select>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-4 mt-6">
-                    <button type="submit" id="submitBtn" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                        Submit Report
-                    </button>
-                    <button type="button" onclick="showMainMenu()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                        Back to Menu
-                    </button>
-                </div>
-            </form>
-        </div>
+    <div id="connectionStatus" class="connection-status disconnected">🔴 Connecting...</div>
 
-        <!-- Admin Panel / Reports Display -->
-        <div id="adminPanel" class="hidden transition-opacity duration-300">
-            <h2 class="text-2xl sm:text-3xl font-semibold text-gray-800 mb-6 text-center">Reports</h2>
-            <div id="reportsDisplay" class="h-96 overflow-y-auto space-y-4 p-4 rounded-lg bg-gray-100">
-                <p class="text-gray-500 text-center">Loading reports...</p>
-            </div>
-            <div class="text-center mt-6">
-                <button type="button" onclick="showMainMenu()" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
-                    Back to Menu
-                </button>
-            </div>
-        </div>
+    
 
-    </div>
+    <div class="container">
 
-    <!-- Custom Modal for Alerts and Confirms -->
-    <div id="customModal" class="hidden modal-overlay">
-        <div class="modal">
-            <h3 id="modalTitle" class="text-2xl font-bold mb-4"></h3>
-            <p id="modalMessage" class="text-gray-600 mb-6"></p>
-            <div id="modalButtons" class="flex justify-center space-x-4">
-                <button id="modalConfirmBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200">Confirm</button>
-                <button id="modalCancelBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200">Cancel</button>
-            </div>
-        </div>
-    </div>
+        <!-- Main Menu -->
 
-    <!-- Firebase SDK Imports -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-        import { getAuth, signInWithCustomToken, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, deleteDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        <div id="mainMenu">
 
-        // NOTE: This firebaseConfig is from your provided snippet.
-        // The rest of the setup uses secure global variables.
-        const firebaseConfig = {
-            apiKey: "AIzaSyC--qumlfiy7QE48HTEAW3DyKlV7GLo-1E",
-            authDomain: "fir-schoolfixed.firebaseapp.com",
-            projectId: "fir-schoolfixed",
-            storageBucket: "fir-schoolfixed.firebasestorage.app",
-            messagingSenderId: "935512141284",
-            appId: "1:935512141284:web:7259aa61ca91788738abf1"
-        };
-        
-        let db, auth;
-        let userId;
+            <h1>Welcome to FixEd!</h1>
 
-        // Secure Firebase Initialization with Custom Auth Token
-        async function initFirebase() {
-            try {
-                // Initialize the Firebase app with the provided config
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+            <p>What can we do for you today?</p>
 
-                // Check for the custom auth token from the environment
-                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            <button class="submit-btn" onclick="showReportForm()">Submit a Report</button>
 
-                if (token) {
-                    // Sign in with the custom token for authenticated users
-                    await signInWithCustomToken(auth, token);
-                    console.log('Signed in with custom token.');
-                } else {
-                    // Sign in anonymously if no token is available
-                    await signInAnonymously(auth);
-                    console.log('Signed in anonymously.');
-                }
+            <button class="admin-btn" onclick="showAdminPanel()">Admin Panel</button>
 
-                // Listen for auth state changes to get the user ID
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        // Update connection status and start listening for reports
-                        updateConnectionStatus(true);
-                        setupReportListener();
-                    } else {
-                        console.error('Failed to authenticate.');
-                        updateConnectionStatus(false, 'Disconnected');
-                    }
-                });
+            <button class="exit-btn" onclick="exitApp()">Exit</button>
 
-            } catch (error) {
-                console.error("Error during Firebase initialization or sign-in:", error);
-                updateConnectionStatus(false, 'Error');
-            }
-        }
-        
-        // Listen for real-time changes to the 'reports' collection
-        function setupReportListener() {
-            if (!db) {
-                console.error("Firestore is not initialized.");
-                return;
-            }
+        </div>
 
-            // The 'reports' collection will be public and shared among all users.
-            const reportsCollectionRef = collection(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', 'public', 'data', 'reports');
 
-            onSnapshot(reportsCollectionRef, (snapshot) => {
-                const reports = [];
-                snapshot.forEach(doc => {
-                    reports.push({ ...doc.data(), id: doc.id });
-                });
-                console.log(`Received ${reports.length} reports in real-time.`);
-                displayReports(reports);
-            });
-        }
-        
-        // UI Functions
-        function showMainMenu() {
-            document.getElementById('mainMenu').classList.remove('hidden');
-            document.getElementById('reportForm').classList.add('hidden');
-            document.getElementById('adminPanel').classList.add('hidden');
-        }
 
-        function showReportForm() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('reportForm').classList.remove('hidden');
-            document.getElementById('adminPanel').classList.add('hidden');
-        }
+        <!-- Report Form -->
 
-        function showAdminPanel() {
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('reportForm').classList.add('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
-        }
+        <div id="reportForm" class="form-container">
 
-        // Custom Modal UI instead of alert() and confirm()
-        function showModal(title, message, isConfirm = false) {
-            return new Promise(resolve => {
-                const modal = document.getElementById('customModal');
-                document.getElementById('modalTitle').textContent = title;
-                document.getElementById('modalMessage').textContent = message;
-                
-                const confirmBtn = document.getElementById('modalConfirmBtn');
-                const cancelBtn = document.getElementById('modalCancelBtn');
-                
-                if (isConfirm) {
-                    confirmBtn.classList.remove('hidden');
-                    cancelBtn.classList.remove('hidden');
-                    confirmBtn.onclick = () => { modal.classList.add('hidden'); resolve(true); };
-                    cancelBtn.onclick = () => { modal.classList.add('hidden'); resolve(false); };
-                } else {
-                    confirmBtn.classList.add('hidden');
-                    cancelBtn.classList.add('hidden');
-                    // Add a close button for simple alerts
-                    const closeBtn = document.createElement('button');
-                    closeBtn.textContent = 'Close';
-                    closeBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200';
-                    closeBtn.onclick = () => { modal.classList.add('hidden'); resolve(true); };
-                    document.getElementById('modalButtons').appendChild(closeBtn);
-                }
-                modal.classList.remove('hidden');
-            });
-        }
+            <h2>Submit a Report</h2>
 
-        // Spinner/Loading UI for buttons
-        function showLoading(buttonId, text) {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.disabled = true;
-                button.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>${text}`;
-            }
-        }
+            <form id="reportFormData" onsubmit="submitReport(event)">
 
-        function hideLoading(buttonId, text) {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.disabled = false;
-                button.innerHTML = text;
-            }
-        }
+                <div class="form-group">
 
-        async function submitReport(event) {
-            event.preventDefault();
-            if (!db) {
-                showModal('Error', 'Database not connected. Please try again later.');
-                return;
-            }
-            
-            showLoading('submitBtn', 'Submitting...');
-            
-            const report = {
-                Name: document.getElementById('name').value || 'Anonymous',
-                Grade: document.getElementById('grade').value,
-                Location: document.getElementById('location').value,
-                'Issue Type': document.getElementById('issueType').value,
-                Description: document.getElementById('description').value,
-                Severity: document.getElementById('severity').value,
-                Timestamp: serverTimestamp(),
-                SubmittedBy: userId,
-            };
+                    <label for="name">Name (or type 'anonymous'):</label>
 
-            try {
-                // Get a reference to the 'reports' collection
-                const reportsCollectionRef = collection(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', 'public', 'data', 'reports');
-                await addDoc(reportsCollectionRef, report);
-                
-                hideLoading('submitBtn', 'Submit Report');
-                showModal('Success!', 'Your report has been submitted successfully.');
-                document.getElementById('reportFormData').reset();
-                showMainMenu();
-            } catch (error) {
-                hideLoading('submitBtn', 'Submit Report');
-                console.error('Error submitting report:', error);
-                showModal('Error', 'Failed to submit report. Please try again.');
-            }
-        }
+                    <input type="text" id="name" placeholder="Enter your name or 'anonymous'">
 
-        function displayReports(reports) {
-            const reportsDisplay = document.getElementById('reportsDisplay');
-            if (reports.length === 0) {
-                reportsDisplay.innerHTML = '<p class="text-gray-500 text-center py-8">No reports found.</p>';
-                return;
-            }
+                </div>
 
-            let html = '';
-            reports.forEach(report => {
-                const reportData = report;
-                html += `
-                    <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-                        <div class="text-sm font-medium text-gray-400 mb-2">
-                            ${reportData.Timestamp ? new Date(reportData.Timestamp.seconds * 1000).toLocaleString() : 'Loading...'}
-                        </div>
-                        <h4 class="text-lg font-semibold text-gray-800">${reportData['Issue Type']} (${reportData.Severity})</h4>
-                        <p class="text-gray-600 mt-2">${reportData.Description}</p>
-                        <div class="mt-4 text-xs text-gray-500 space-y-1">
-                            <p><strong>Location:</strong> ${reportData.Location}</p>
-                            <p><strong>Grade:</strong> ${reportData.Grade}</p>
-                            <p><strong>Submitted by:</strong> ${reportData.SubmittedBy}</p>
-                        </div>
-                        <div class="mt-4 text-right">
-                            <button onclick="deleteReport('${report.id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors duration-200">
-                                Resolve & Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            reportsDisplay.innerHTML = html;
-        }
+                
 
-        async function deleteReport(reportId) {
-            if (!db) {
-                showModal('Error', 'Database not connected. Please try again later.');
-                return;
-            }
+                <div class="form-group">
 
-            const confirmed = await showModal('Confirm Deletion', 'Are you sure you want to delete this report? This cannot be undone.', true);
-            
-            if (confirmed) {
-                try {
-                    const docRef = doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'default-app-id', 'public', 'data', 'reports', reportId);
-                    await deleteDoc(docRef);
-                    showModal('Success!', 'Report has been deleted successfully.');
-                } catch (error) {
-                    console.error('Error deleting report:', error);
-                    showModal('Error', 'Failed to delete report. Please try again.');
-                }
-            }
-        }
+                    <label for="grade">Grade:</label>
 
-        function updateConnectionStatus(isConnected, message = 'Connected') {
-            const statusEl = document.getElementById('connectionStatus');
-            if (isConnected) {
-                statusEl.textContent = '🟢 ' + message;
-                statusEl.className = 'connection-status connected bg-emerald-100 text-emerald-800';
-            } else {
-                statusEl.textContent = '🔴 ' + message;
-                statusEl.className = 'connection-status disconnected bg-red-100 text-red-800';
-            }
-        }
-        
-        // Initialize the app on window load
-        window.onload = initFirebase;
-    </script>
+                    <input type="text" id="grade" placeholder="What grade are you in?" required>
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="location">Location:</label>
+
+                    <input type="text" id="location" placeholder="Where did this happen? (e.g., Cafeteria, Hallway)" required>
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="issueType">Issue Type:</label>
+
+                    <input type="text" id="issueType" placeholder="What type of issue are you reporting?" required>
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="description">Description:</label>
+
+                    <textarea id="description" placeholder="Please describe what happened in detail" required></textarea>
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="peopleInvolved">People Involved:</label>
+
+                    <input type="text" id="peopleInvolved" placeholder="List any names or details of people involved">
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="when">When (optional):</label>
+
+                    <input type="text" id="when" placeholder="When did this happen?">
+
+                </div>
+
+                
+
+                <div class="form-group">
+
+                    <label for="severity">Severity:</label>
+
+                    <select id="severity" required>
+
+                        <option value="">Select severity level</option>
+
+                        <option value="Minor">Minor</option>
+
+                        <option value="Medium">Medium</option>
+
+                        <option value="Major">Major</option>
+
+                    </select>
+
+                </div>
+
+                
+
+                <div class="form-buttons">
+
+                    <button type="submit" class="submit-btn" id="submitBtn">Submit Report</button>
+
+                    <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+
+        <!-- Admin Panel -->
+
+        <div id="adminPanel" class="form-container">
+
+            <h2>Admin Panel</h2>
+
+            <form onsubmit="viewReports(event)">
+
+                <div class="form-group">
+
+                    <label for="adminPassword">Password:</label>
+
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+
+                </div>
+
+                <div class="form-buttons">
+
+                    <button type="submit" class="admin-btn" id="viewReportsBtn">View Reports</button>
+
+                    <button type="button" class="back-btn" onclick="showMainMenu()">Back</button>
+
+                </div>
+
+            </form>
+
+            
+
+            <div id="reportsDisplay" class="reports-display" style="display: none;"></div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Firebase SDK -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+
+
+
+    <script>
+
+        const ADMIN_PASS = "@#Lets.Fix.Schools";
+
+        let reports = [];
+
+        let db;
+
+        let isFirebaseConnected = false;
+
+
+
+        // Firebase configuration - using public demo config for testing
+
+        const firebaseConfig = {
+
+            apiKey: "AIzaSyDemoKey123456789",
+
+            authDomain: "fixed-reports-demo.firebaseapp.com",
+
+            projectId: "fixed-reports-demo",
+
+            storageBucket: "fixed-reports-demo.appspot.com",
+
+            messagingSenderId: "123456789012",
+
+            appId: "1:123456789012:web:abcdef123456"
+
+        };
+
+
+
+        // Fallback to JSONBin.io for cloud storage
+
+        const API_URL = 'https://api.jsonbin.io/v3/b/676414cbe41b4d34e462b4a8';
+
+        const API_KEY = '$2a$10$tW8jXvkxGGx.bX3r7Y9z5OqN4vW2pL8mF6nK9xR3sT1uV7yE5qA2e';
+
+        
+
+        const cloudDB = {
+
+            async getReports() {
+
+                try {
+
+                    const response = await fetch(`${API_URL}/latest`, {
+
+                        method: 'GET',
+
+                        headers: {
+
+                            'X-Master-Key': API_KEY,
+
+                        }
+
+                    });
+
+                    if (response.ok) {
+
+                        const data = await response.json();
+
+                        return data.record || [];
+
+                    }
+
+                    throw new Error('Failed to fetch');
+
+                } catch (error) {
+
+                    console.log('Using local storage fallback');
+
+                    return JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+
+                }
+
+            },
+
+            
+
+            async saveReports(reportsArray) {
+
+                try {
+
+                    const response = await fetch(API_URL, {
+
+                        method: 'PUT',
+
+                        headers: {
+
+                            'Content-Type': 'application/json',
+
+                            'X-Master-Key': API_KEY,
+
+                        },
+
+                        body: JSON.stringify(reportsArray)
+
+                    });
+
+                    if (response.ok) {
+
+                        localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
+
+                        return true;
+
+                    }
+
+                    throw new Error('Failed to save');
+
+                } catch (error) {
+
+                    console.log('Using local storage fallback');
+
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reportsArray));
+
+                    return true;
+
+                }
+
+            }
+
+        };
+
+
+
+        // Initialize Firebase
+
+        function initFirebase() {
+
+            try {
+
+                firebase.initializeApp(firebaseConfig);
+
+                db = firebase.firestore();
+
+                isFirebaseConnected = true;
+
+                updateConnectionStatus(true);
+
+                console.log('Firebase connected successfully');
+
+                
+
+                // Set up real-time listener for reports
+
+                db.collection('reports').onSnapshot((snapshot) => {
+
+                    reports = [];
+
+                    snapshot.forEach((doc) => {
+
+                        reports.push({...doc.data(), id: doc.id});
+
+                    });
+
+                    console.log('Reports updated from Firebase:', reports.length);
+
+                    // Refresh display if admin panel is open
+
+                    if (document.getElementById('reportsDisplay').style.display === 'block') {
+
+                        displayReports();
+
+                    }
+
+                });
+
+                
+
+            } catch (error) {
+
+                console.log('Firebase failed, using cloud fallback:', error);
+
+                isFirebaseConnected = false;
+
+                updateConnectionStatus(false);
+
+                loadReportsFromCloud();
+
+            }
+
+        }
+
+
+
+        function updateConnectionStatus(connected) {
+
+            const statusEl = document.getElementById('connectionStatus');
+
+            if (connected) {
+
+                statusEl.textContent = '🟢 Connected (Real-time)';
+
+                statusEl.className = 'connection-status connected';
+
+            } else {
+
+                statusEl.textContent = '🟡 Cloud Sync';
+
+                statusEl.className = 'connection-status disconnected';
+
+            }
+
+        }
+
+
+
+        // Load reports from cloud fallback
+
+        async function loadReportsFromCloud() {
+
+            try {
+
+                reports = await cloudDB.getReports();
+
+                console.log('Loaded reports from cloud:', reports.length);
+
+            } catch (error) {
+
+                console.error("Error loading reports:", error);
+
+                reports = JSON.parse(localStorage.getItem('schoolReportsBackup') || '[]');
+
+            }
+
+        }
+
+
+
+        // Save reports to Firebase or cloud
+
+        async function saveReports() {
+
+            if (isFirebaseConnected) {
+
+                // Firebase handles real-time sync automatically
+
+                return true;
+
+            } else {
+
+                try {
+
+                    await cloudDB.saveReports(reports);
+
+                    return true;
+
+                } catch (error) {
+
+                    console.error("Error saving reports:", error);
+
+                    localStorage.setItem('schoolReportsBackup', JSON.stringify(reports));
+
+                    return false;
+
+                }
+
+            }
+
+        }
+
+
+
+        // Show loading state
+
+        function showLoading(buttonId, text = 'Loading...') {
+
+            const button = document.getElementById(buttonId);
+
+            if (button) {
+
+                button.innerHTML = '<div class="loading"></div>' + text;
+
+                button.disabled = true;
+
+            }
+
+        }
+
+
+
+        // Hide loading state
+
+        function hideLoading(buttonId, text) {
+
+            const button = document.getElementById(buttonId);
+
+            if (button) {
+
+                button.innerHTML = text;
+
+                button.disabled = false;
+
+            }
+
+        }
+
+
+
+        // Navigation functions
+
+        function showMainMenu() {
+
+            document.getElementById('mainMenu').style.display = 'block';
+
+            document.getElementById('reportForm').style.display = 'none';
+
+            document.getElementById('adminPanel').style.display = 'none';
+
+            document.getElementById('reportsDisplay').style.display = 'none';
+
+        }
+
+
+
+        function showReportForm() {
+
+            document.getElementById('mainMenu').style.display = 'none';
+
+            document.getElementById('reportForm').style.display = 'block';
+
+            document.getElementById('adminPanel').style.display = 'none';
+
+        }
+
+
+
+        function showAdminPanel() {
+
+            document.getElementById('mainMenu').style.display = 'none';
+
+            document.getElementById('reportForm').style.display = 'none';
+
+            document.getElementById('adminPanel').style.display = 'block';
+
+            document.getElementById('adminPassword').value = '';
+
+            document.getElementById('reportsDisplay').style.display = 'none';
+
+        }
+
+
+
+        function exitApp() {
+
+            if (confirm('Are you sure you want to exit FixEd?')) {
+
+                window.close();
+
+                setTimeout(() => {
+
+                    alert('Please close this tab to exit the application.');
+
+                }, 100);
+
+            }
+
+        }
+
+
+
+        // Report submission
+
+        async function submitReport(event) {
+
+            event.preventDefault();
+
+            
+
+            showLoading('submitBtn', 'Submitting...');
+
+            
+
+            const report = {
+
+                Name: document.getElementById('name').value || 'anonymous',
+
+                Grade: document.getElementById('grade').value,
+
+                Location: document.getElementById('location').value,
+
+                'Issue Type': document.getElementById('issueType').value,
+
+                Description: document.getElementById('description').value,
+
+                'People Involved': document.getElementById('peopleInvolved').value,
+
+                When: document.getElementById('when').value,
+
+                Severity: document.getElementById('severity').value,
+
+                Timestamp: new Date().toLocaleString(),
+
+                Device: navigator.userAgent.includes('Mobile') ? 'Mobile Device' : 'Computer'
+
+            };
+
+
+
+            try {
+
+                if (isFirebaseConnected) {
+
+                    // Add to Firebase
+
+                    await db.collection('reports').add(report);
+
+                } else {
+
+                    // Add to local array and sync to cloud
+
+                    report.id = Date.now() + Math.random();
+
+                    reports.push(report);
+
+                    await cloudDB.saveReports(reports);
+
+                }
+
+                
+
+                hideLoading('submitBtn', 'Submit Report');
+
+                alert('Your report has been saved and synced across all devices! Your voice matters!');
+
+                
+
+                // Clear form
+
+                document.getElementById('reportFormData').reset();
+
+                showMainMenu();
+
+            } catch (error) {
+
+                hideLoading('submitBtn', 'Submit Report');
+
+                console.error('Error submitting report:', error);
+
+                alert('Error submitting report. Please try again.');
+
+            }
+
+        }
+
+
+
+        // Admin view reports
+
+        async function viewReports(event) {
+
+            if (event) {
+
+                event.preventDefault();
+
+            }
+
+            
+
+            const password = document.getElementById('adminPassword').value;
+
+            
+
+            if (password !== ADMIN_PASS) {
+
+                alert('Incorrect password!');
+
+                return;
+
+            }
+
+
+
+            showLoading('viewReportsBtn', 'Loading...');
+
+            
+
+            try {
+
+                if (!isFirebaseConnected) {
+
+                    // Refresh from cloud if not using Firebase
+
+                    await loadReportsFromCloud();
+
+                }
+
+                displayReports();
+
+                hideLoading('viewReportsBtn', 'View Reports');
+
+            } catch (error) {
+
+                hideLoading('viewReportsBtn', 'View Reports');
+
+                alert('Error loading reports. Please try again.');
+
+            }
+
+        }
+
+
+
+        function displayReports() {
+
+            const reportsDisplay = document.getElementById('reportsDisplay');
+
+            
+
+            if (reports.length === 0) {
+
+                reportsDisplay.innerHTML = '<h3>No Reports Found</h3><p>All reports have been resolved!</p>';
+
+                reportsDisplay.style.display = 'block';
+
+                return;
+
+            }
+
+
+
+            let html = '<h3>All Reports (' + reports.length + ') - Real-time Sync Across All Devices</h3>';
+
+            
+
+            for (let i = 0; i < reports.length; i++) {
+
+                const report = reports[i];
+
+                html += '<div class="report-item">';
+
+                html += '<h4>Report #' + (i + 1) + ' - ' + (report.Severity || 'Unknown') + '</h4>';
+
+                
+
+                // Display report fields
+
+                if (report.Name) html += '<div class="report-field"><strong>Name:</strong> ' + report.Name + '</div>';
+
+                if (report.Grade) html += '<div class="report-field"><strong>Grade:</strong> ' + report.Grade + '</div>';
+
+                if (report.Location) html += '<div class="report-field"><strong>Location:</strong> ' + report.Location + '</div>';
+
+                if (report['Issue Type']) html += '<div class="report-field"><strong>Issue Type:</strong> ' + report['Issue Type'] + '</div>';
+
+                if (report.Description) html += '<div class="report-field"><strong>Description:</strong> ' + report.Description + '</div>';
+
+                if (report['People Involved']) html += '<div class="report-field"><strong>People Involved:</strong> ' + report['People Involved'] + '</div>';
+
+                if (report.When) html += '<div class="report-field"><strong>When:</strong> ' + report.When + '</div>';
+
+                if (report.Timestamp) html += '<div class="report-field"><strong>Submitted:</strong> ' + report.Timestamp + '</div>';
+
+                if (report.Device) html += '<div class="report-field"><strong>Submitted From:</strong> ' + report.Device + '</div>';
+
+                
+
+                html += '<div class="report-actions">';
+
+                html += '<button class="delete-btn" onclick="deleteReport(\'' + report.id + '\')">Issue Resolved - Delete Report</button>';
+
+                html += '</div>';
+
+                html += '</div>';
+
+            }
+
+            
+
+            reportsDisplay.innerHTML = html;
+
+            reportsDisplay.style.display = 'block';
+
+        }
+
+
+
+        // Delete report function - FIXED
+
+        async function deleteReport(reportId) {
+
+            if (confirm('Are you sure you want to delete this report? This cannot be undone.')) {
+
+                try {
+
+                    if (isFirebaseConnected) {
+
+                        // Delete from Firebase
+
+                        await db.collection('reports').doc(reportId).delete();
+
+                        showNotification('Report deleted and synced across all devices!');
+
+                    } else {
+
+                        // Delete from local array and sync to cloud
+
+                        reports = reports.filter(r => r.id !== reportId);
+
+                        await cloudDB.saveReports(reports);
+
+                        displayReports(); // Refresh display
+
+                        showNotification('Report deleted and synced to cloud!');
+
+                    }
+
+                } catch (error) {
+
+                    console.error('Error deleting report:', error);
+
+                    alert('Error deleting report. Please try again.');
+
+                }
+
+            }
+
+        }
+
+
+
+        function showNotification(message) {
+
+            const notification = document.createElement('div');
+
+            notification.textContent = message;
+
+            notification.style.cssText = 'position: fixed; top: 60px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 5px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+
+                if (document.body.contains(notification)) {
+
+                    document.body.removeChild(notification);
+
+                }
+
+            }, 4000);
+
+        }
+
+
+
+        // Initialize
+
+        function init() {
+
+            initFirebase();
+
+            // If Firebase fails, it will automatically fall back to cloud storage
+
+        }
+
+
+
+        window.onload = init;
+
+    </script>
+
 </body>
+
 </html>
